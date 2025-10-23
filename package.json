@@ -13,6 +13,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "heroku-postbuild": "npm run build",
+  "migrate:run": "node run-migrations.js",
     "lint": "tslint -p tsconfig.json -c tslint.json",
     "test": "jest --detectOpenHandles",
     "test:watch": "jest --watch",

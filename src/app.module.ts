@@ -32,28 +32,49 @@ import { CollectorPerformerModule } from './collectorperformer/collectorperforme
 import { AlbumBandModule } from './albumband/albumband.module';
 import { AlbumMusicianModule } from './albummusician/albummusician.module';
 
+const ENTITIES = [
+  Album, CollectorAlbum, Band, Collector, Comment, Musician, Performer, PerformerPrize, Prize, Track,
+];
+
 @Module({
-  imports: [  
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: 5432,
-      username: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASS || 'postgres',
-      database: process.env.DB_NAME || 'vinyls',
-      entities: [Album, CollectorAlbum, Band, Collector, Comment, Musician, Performer, PerformerPrize, Prize, Track,],
-      dropSchema: false,
-      synchronize: true,
-      keepConnectionAlive: true,
-      migrations: [__dirname + '/migration/**/*{.ts,.js}'],
-      migrationsRun: true,
-      extra: process.env.USE_SSL === 'true' ? {
-        ssl: {
-          rejectUnauthorized: false,
-          sslmode: 'require'
+  imports: [
+    // 👉 Usa DATABASE_URL en Heroku; localhost en desarrollo
+    TypeOrmModule.forRootAsync({
+      useFactory: () => {
+        const isProd = process.env.NODE_ENV === 'production';
+        if (process.env.DATABASE_URL) {
+          return {
+            type: 'postgres' as const,
+            url: process.env.DATABASE_URL,      // ¡Heroku!
+            entities: ENTITIES,
+            dropSchema: false,
+            synchronize: true,                   // deja true si es lo que usa el curso
+            keepConnectionAlive: true,
+            migrations: [__dirname + '/migration/**/*{.ts,.js}'],
+            migrationsRun: true,
+            // SSL para RDS/Heroku
+            ssl: isProd ? true : false,
+            extra: isProd ? { ssl: { rejectUnauthorized: false } } : undefined,
+          };
         }
-      } : undefined
+        // Local (tu máquina)
+        return {
+          type: 'postgres' as const,
+          host: process.env.DB_HOST || 'localhost',
+          port: +(process.env.DB_PORT || 5432),
+          username: process.env.DB_USER || 'postgres',
+          password: process.env.DB_PASS || 'postgres',
+          database: process.env.DB_NAME || 'vinyls',
+          entities: ENTITIES,
+          dropSchema: false,
+          synchronize: true,
+          keepConnectionAlive: true,
+          migrations: [__dirname + '/migration/**/*{.ts,.js}'],
+          migrationsRun: true,
+        };
+      },
     }),
+
     RecordLabelModule,
     PrizeModule,
     TrackModule,
@@ -72,6 +93,7 @@ import { AlbumMusicianModule } from './albummusician/albummusician.module';
     BandAlbumModule,
     CollectorPerformerModule,
     AlbumBandModule,
-    AlbumMusicianModule],
+    AlbumMusicianModule,
+  ],
 })
-export class AppModule { }
+export class AppModule {}
